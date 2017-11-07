@@ -56,11 +56,11 @@ class RNInCallManager: NSObject, AVAudioPlayerDelegate {
     var cameraPermission: String!
     var media: String = "audio"
 
-    private lazy var device: AVCaptureDevice? = { AVCaptureDevice.defaultDevice(withMediaType: AVMediaTypeVideo) }()
+    private lazy var device: AVCaptureDevice? = { AVCaptureDevice.default(for: AVMediaType.video) }()
 
     // --- AVAudioSessionCategoryOptionAllowBluetooth:
     // --- Valid only if the audio session category is AVAudioSessionCategoryPlayAndRecord or AVAudioSessionCategoryRecord.
-    // --- Using VoiceChat/VideoChat mode has the side effect of enabling the AVAudioSessionCategoryOptionAllowBluetooth category option. 
+    // --- Using VoiceChat/VideoChat mode has the side effect of enabling the AVAudioSessionCategoryOptionAllowBluetooth category option.
     // --- So basically, we don't have to add AllowBluetooth options by hand.
 
     //@objc func initWithBridge(_bridge: RCTBridge) {
@@ -265,7 +265,7 @@ class RNInCallManager: NSObject, AVAudioPlayerDelegate {
             do {
                 try device.lockForConfiguration()
                 if enable {
-                    try device.setTorchModeOnWithLevel(brightness.floatValue)
+                    try device.setTorchModeOn(level: brightness.floatValue)
                 } else {
                     device.torchMode = .off
                 }
@@ -298,7 +298,7 @@ class RNInCallManager: NSObject, AVAudioPlayerDelegate {
 
     func storeOriginalAudioSetup() -> Void {
         NSLog("RNInCallManager.storeOriginalAudioSetup(): origAudioCategory=\(self.audioSession.category), origAudioMode=\(self.audioSession.mode)")
-        self.origAudioCategory = self.audioSession.category 
+        self.origAudioCategory = self.audioSession.category
         self.origAudioMode = self.audioSession.mode
     }
 
@@ -330,7 +330,7 @@ class RNInCallManager: NSObject, AVAudioPlayerDelegate {
                 self.bridge.eventDispatcher().sendDeviceEvent(withName: "Proximity", body: ["isNear": state])
             }
         }
-        
+
         self.isProximityRegistered = true
     }
 
@@ -589,7 +589,7 @@ class RNInCallManager: NSObject, AVAudioPlayerDelegate {
             self.mRingback.play()
         } catch let err {
             NSLog("RNInCallManager.startRingback(): caught error=\(err)")
-        }    
+        }
     }
 
     @objc func stopRingback() -> Void {
@@ -626,7 +626,7 @@ class RNInCallManager: NSObject, AVAudioPlayerDelegate {
             //self.storeOriginalAudioSetup()
             self.mBusytone = try AVAudioPlayer(contentsOf: busytoneUri!)
             self.mBusytone.delegate = self
-            self.mBusytone.numberOfLoops = 0 // it's part of start(), will stop at stop() 
+            self.mBusytone.numberOfLoops = 0 // it's part of start(), will stop at stop()
             self.mBusytone.prepareToPlay()
 
             //self.audioSessionSetCategory(self.incallAudioCategory, [.DefaultToSpeaker, .AllowBluetooth], #function)
@@ -636,10 +636,10 @@ class RNInCallManager: NSObject, AVAudioPlayerDelegate {
         } catch let err {
             NSLog("RNInCallManager.startBusytone(): caught error=\(err)")
             return false
-        }    
+        }
         return true
     }
-    
+
     func stopBusytone() -> Void {
         if self.mBusytone != nil {
             NSLog("RNInCallManager.stopBusytone()")
@@ -666,7 +666,7 @@ class RNInCallManager: NSObject, AVAudioPlayerDelegate {
                 NSLog("RNInCallManager.startRingtone(): no available media")
                 return
             }
-            
+
             // --- ios has Ringer/Silent switch, so just play without check ringer volume.
             self.storeOriginalAudioSetup()
             self.mRingtone = try AVAudioPlayer(contentsOf: ringtoneUri!)
@@ -676,7 +676,7 @@ class RNInCallManager: NSObject, AVAudioPlayerDelegate {
 
             // --- 1. if we use Playback, it can supports background playing (starting from foreground), but it would not obey Ring/Silent switch.
             // ---    make sure you have enabled 'audio' tag ( or 'voip' tag ) at XCode -> Capabilities -> BackgroundMode
-            // --- 2. if we use SoloAmbient, it would obey Ring/Silent switch in the foreground, but does not support background playing, 
+            // --- 2. if we use SoloAmbient, it would obey Ring/Silent switch in the foreground, but does not support background playing,
             // ---    thus, then you should play ringtone again via local notification after back to home during a ring session.
 
             // we prefer 2. by default, since most of users doesn't want to interrupted by a ringtone if Silent mode is on.
@@ -692,7 +692,7 @@ class RNInCallManager: NSObject, AVAudioPlayerDelegate {
             self.mRingtone.play()
         } catch let err {
             NSLog("RNInCallManager.startRingtone(): caught error=\(err)")
-        }    
+        }
     }
 
     @objc func stopRingtone() -> Void {
@@ -767,7 +767,7 @@ class RNInCallManager: NSObject, AVAudioPlayerDelegate {
                 return uriBundle
             }
         }
-        
+
         if uriDefault == nil {
             let target: String = "\(fileSysPath)/\(type)"
             uriDefault = self.getSysFileUri(target)
@@ -919,7 +919,7 @@ class RNInCallManager: NSObject, AVAudioPlayerDelegate {
         } else {
             // --- target api at least iOS7+
             usingApi = "iOS7"
-            recordPermission = self._checkMediaPermission(AVMediaTypeAudio)
+            recordPermission = self._checkMediaPermission(AVMediaType.audio.rawValue)
         }
         self.recordPermission = recordPermission
         NSLog("RNInCallManager._checkRecordPermission(): using \(usingApi) api. recordPermission=\(self.recordPermission)")
@@ -948,13 +948,13 @@ class RNInCallManager: NSObject, AVAudioPlayerDelegate {
     }
 
     func _checkCameraPermission() -> Void {
-        self.cameraPermission = self._checkMediaPermission(AVMediaTypeVideo)
+        self.cameraPermission = self._checkMediaPermission(AVMediaType.video.rawValue)
         NSLog("RNInCallManager._checkCameraPermission(): using iOS7 api. cameraPermission=\(self.cameraPermission)")
     }
 
     @objc func requestCameraPermission(_ resolve: @escaping RCTPromiseResolveBlock, reject: RCTPromiseRejectBlock) {
         NSLog("RNInCallManager.requestCameraPermission(): waiting for user confirmation...")
-        AVCaptureDevice.requestAccess(forMediaType: AVMediaTypeVideo, completionHandler: {(granted: Bool) -> Void in
+        AVCaptureDevice.requestAccess(for: AVMediaType.video, completionHandler: {(granted: Bool) -> Void in
             if granted {
                 self.cameraPermission = "granted"
             } else {
@@ -966,7 +966,7 @@ class RNInCallManager: NSObject, AVAudioPlayerDelegate {
     }
 
     func _checkMediaPermission(_ targetMediaType: String) -> String {
-        switch AVCaptureDevice.authorizationStatus(forMediaType: targetMediaType) {
+        switch AVCaptureDevice.authorizationStatus(for: AVMediaType(rawValue: targetMediaType)) {
             case AVAuthorizationStatus.authorized:
                 return "granted"
             case AVAuthorizationStatus.denied:
